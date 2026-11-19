@@ -89,23 +89,33 @@
       after: ["arjs-anchor"],
       schema: {
         marker: { type: "selector" },
-        card: { type: "selector" }
+        card: { type: "selector" },
+        rigidPose: { default: false }
       },
       init() {
         this.detectedSince = null;
         this.lastSeen = null;
         this.el.object3D.visible = false;
       },
-      tick(time) {
+      tick(time, delta) {
         const marker = this.data.marker;
         const content = this.el.object3D;
 
         if (marker.object3D.visible) {
+          const acquiring = this.detectedSince === null;
           this.detectedSince ??= time;
           this.lastSeen = time;
-          content.position.copy(marker.object3D.position);
-          content.quaternion.copy(marker.object3D.quaternion);
-          content.scale.copy(marker.object3D.scale);
+          const pose = marker.object3D;
+          if (this.data.rigidPose) {
+            // Сглаживаем координаты и поворот, сохраняя размер модели.
+            const blend = acquiring ? 1 : 1 - Math.exp(-delta / 45);
+            content.position.lerp(pose.position, blend);
+            content.quaternion.slerp(pose.quaternion, blend).normalize();
+          } else {
+            content.position.copy(pose.position);
+            content.quaternion.copy(pose.quaternion);
+            content.scale.copy(pose.scale);
+          }
           if (!content.visible && time - this.detectedSince >= 70) {
             this.show(true);
           }
@@ -152,20 +162,20 @@
 
     <!-- маркер Hiro: вращающаяся шестерня и надпись -->
     <a-marker id="marker-machine" type="pattern"
-              url="data/patt.hiro" smooth="true" min-confidence="0.55"></a-marker>
+              url="data/patt.hiro" min-confidence="0.55"></a-marker>
     <a-entity id="content-machine"
-              marker-display="marker: #marker-machine; card: #card-machine">
-      <a-entity id="gear" position="0 0.15 0"
+              marker-display="marker: #marker-machine; card: #card-machine; rigidPose: true">
+      <a-entity id="gear" position="0 0.24 0" scale="0.8 1 0.8"
                 animation="property: rotation; to: 0 360 0;
                            loop: true; dur: 6000; easing: linear">
-        <a-cylinder radius="0.5" height="0.2" color="#8c96a0">
+        <a-cylinder radius="0.5" height="0.32" color="#8c96a0">
         </a-cylinder>
-        <a-cylinder radius="0.15" height="0.25" color="#3c4650">
+        <a-cylinder radius="0.15" height="0.39" color="#3c4650">
         </a-cylinder>
       </a-entity>
-      <a-plane position="0 0.1 -1.1" rotation="-90 0 0"
-               width="2" height="0.5"
-               material="shader: flat; src: #label-machine">
+      <a-plane position="0 0.2 -0.78" rotation="-90 0 0"
+               width="1.48" height="0.37"
+               material="shader: flat; src: #label-machine; side: double">
       </a-plane>
     </a-entity>
 
@@ -204,7 +214,7 @@
       var z = 0.56 * Math.sin(rad);
       var tooth = document.createElement("a-box");
       tooth.setAttribute("width", "0.16");
-      tooth.setAttribute("height", "0.2");
+      tooth.setAttribute("height", "0.32");
       tooth.setAttribute("depth", "0.16");
       tooth.setAttribute("color", "#8c96a0");
       tooth.setAttribute("position", x + " 0 " + z);
