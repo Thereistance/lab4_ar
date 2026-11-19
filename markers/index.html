@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Маркеры Hiro и Kanji</title>
+  <style>
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-content: center;
+      gap: 16px; background: white; color: #151515; font: 16px/1.4 system-ui, sans-serif;
+    }
+    nav { display: flex; justify-content: center; gap: 8px; }
+    button {
+      padding: 8px 20px; border: 1px solid #606060; border-radius: 6px;
+      background: white; color: inherit; font: inherit; cursor: pointer;
+    }
+    button[aria-pressed="true"] { background: #151515; color: white; }
+    img { display: block; width: min(70vw, 64vh, 340px); height: auto; margin: auto; }
+    @media print { nav { display: none; } img { width: 11cm; } }
+  </style>
+</head>
+<body>
+  <nav aria-label="Выбор маркера">
+    <button type="button" aria-pressed="true" data-marker="hiro">Hiro</button>
+    <button type="button" aria-pressed="false" data-marker="kanji">Kanji</button>
+  </nav>
+  <img id="marker" src="hiro.png" alt="Маркер Hiro" width="2000" height="2000">
+  <script>
+    const image = document.getElementById("marker");
+    const buttons = document.querySelectorAll("button[data-marker]");
+    buttons.forEach(button => {
+      button.addEventListener("click", () => {
+        image.src = button.dataset.marker + ".png";
+        image.alt = "Маркер " + button.textContent;
+        buttons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+      });
+    });
+  </script>
+</body>
+</html>
