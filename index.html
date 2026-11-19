@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1,
+                 maximum-scale=1, user-scalable=no">
+  <title>Лабораторная работа №4. Дополненная реальность</title>
+
+  <!-- A-Frame - движок 3D-сцены, AR.js - распознавание маркеров -->
+  <script src="lib/aframe.min.js"></script>
+  <script src="lib/aframe-ar.js"></script>
+
+  <style>
+    html, body {
+      margin: 0; overflow: hidden; font-family: Arial, sans-serif;
+    }
+
+    /* подсказка вверху экрана */
+    #hint {
+      position: fixed; top: 12px; left: 12px; right: 12px;
+      z-index: 10; padding: 10px 14px; border-radius: 10px;
+      background: rgba(0, 0, 0, 0.6); color: #fff;
+      font-size: 15px; text-align: center;
+    }
+
+    /* карточка с данными объекта внизу экрана */
+    .card {
+      position: fixed; left: 12px; right: 12px; bottom: 16px;
+      z-index: 10; padding: 14px 16px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.95); color: #222;
+      font-size: 15px; line-height: 1.4;
+      display: none;
+    }
+    .card h2 { margin: 0 0 6px; font-size: 18px; color: #0b5cad; }
+    .card p { margin: 3px 0; }
+  </style>
+</head>
+<body>
+
+  <div id="hint">Наведите камеру на маркер Hiro или Kanji</div>
+
+  <!-- карточка для маркера Hiro: учебный станок -->
+  <div class="card" id="card-machine">
+    <h2>Токарный станок 16К20</h2>
+    <p>Наибольший диаметр заготовки над станиной: 400 мм</p>
+    <p>Перед работой: надеть защитные очки,
+       проверить ограждение патрона</p>
+    <p>Запрещено: измерять деталь при вращающемся шпинделе</p>
+  </div>
+
+  <!-- карточка для маркера Kanji: учебная аудитория -->
+  <div class="card" id="card-room">
+    <h2>Аудитория 0310</h2>
+    <p>Компьютерный класс, 24 рабочих места</p>
+    <p>Сейчас: Технологии виртуальной и дополненной реальности</p>
+    <p>Следующее занятие: 12:20</p>
+  </div>
+
+  <!-- холсты для надписей на русском языке -->
+  <canvas id="label-machine" width="512" height="128"
+          style="display:none"></canvas>
+  <canvas id="label-room" width="512" height="128"
+          style="display:none"></canvas>
+
+  <script>
+    // шрифт A-Frame не поддерживает кириллицу, поэтому надпись
+    // рисуется на холсте, а холст используется как текстура
+    function drawLabel(id, text, color) {
+      var canvas = document.getElementById(id);
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 52px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+    drawLabel("label-machine", "Станок 16К20", "#0b5cad");
+    drawLabel("label-room", "Аудитория 0310", "#1d8a3a");
+  </script>
+
+  <a-scene embedded
+           vr-mode-ui="enabled: false"
+           renderer="antialias: true; logarithmicDepthBuffer: true"
+           arjs="sourceType: webcam; detectionMode: mono;
+                 cameraParametersUrl: data/camera_para.dat;
+                 debugUIEnabled: false;">
+
+    <!-- Маркер лежит в плоскости XZ, ось Y направлена на камеру.
+         Поэтому надписи повёрнуты на -90 градусов вокруг оси X,
+         чтобы они смотрели в камеру. -->
+
+    <!-- маркер Hiro: вращающаяся шестерня и надпись -->
+    <a-marker id="marker-machine" type="pattern"
+              url="data/patt.hiro" emitevents="true">
+      <a-entity id="gear" position="0 0.15 0"
+                animation="property: rotation; to: 0 360 0;
+                           loop: true; dur: 6000; easing: linear">
+        <a-cylinder radius="0.5" height="0.2" color="#8c96a0">
+        </a-cylinder>
+        <a-cylinder radius="0.15" height="0.25" color="#3c4650">
+        </a-cylinder>
+      </a-entity>
+      <a-plane position="0 0.1 -1.1" rotation="-90 0 0"
+               width="2" height="0.5"
+               material="shader: flat; src: #label-machine">
+      </a-plane>
+    </a-marker>
+
+    <!-- маркер Kanji: надпись и стрелка, указывающая на неё -->
+    <a-marker id="marker-room" type="pattern"
+              url="data/patt.kanji" emitevents="true">
+      <a-box position="0 0.05 0" width="0.8" height="0.1" depth="0.8"
+             color="#1d8a3a"
+             animation="property: rotation; to: 0 360 0;
+                        loop: true; dur: 5000; easing: linear">
+      </a-box>
+      <a-cone position="0 0.2 -0.5" rotation="-90 0 0"
+              radius-bottom="0.15" height="0.3" color="#f2a900"
+              animation="property: position; to: 0 0.2 -0.7;
+                         dir: alternate; loop: true; dur: 700">
+      </a-cone>
+      <a-plane position="0 0.1 -1.2" rotation="-90 0 0"
+               width="2" height="0.5"
+               material="shader: flat; src: #label-room">
+      </a-plane>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // добавляем зубья шестерни по окружности
+    var gear = document.getElementById("gear");
+    var teeth = 12;
+    for (var i = 0; i < teeth; i++) {
+      var angle = 360 / teeth * i;
+      var rad = angle * Math.PI / 180;
+      var x = 0.56 * Math.cos(rad);
+      var z = 0.56 * Math.sin(rad);
+      var tooth = document.createElement("a-box");
+      tooth.setAttribute("width", "0.16");
+      tooth.setAttribute("height", "0.2");
+      tooth.setAttribute("depth", "0.16");
+      tooth.setAttribute("color", "#8c96a0");
+      tooth.setAttribute("position", x + " 0 " + z);
+      tooth.setAttribute("rotation", "0 " + (-angle) + " 0");
+      gear.appendChild(tooth);
+    }
+
+    // карточка появляется, когда маркер найден,
+    // и прячется, когда маркер потерян
+    function connect(markerId, cardId) {
+      var marker = document.getElementById(markerId);
+      var card = document.getElementById(cardId);
+      var hint = document.getElementById("hint");
+      marker.addEventListener("markerFound", function () {
+        card.style.display = "block";
+        hint.style.display = "none";
+      });
+      marker.addEventListener("markerLost", function () {
+        card.style.display = "none";
+        hint.style.display = "block";
+      });
+    }
+    connect("marker-machine", "card-machine");
+    connect("marker-room", "card-room");
+  </script>
+</body>
+</html>
